@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -33,12 +35,14 @@ fun AddCardConditionDialog(
     var thresholdText by remember { mutableStateOf("300000") }
     var period by remember { mutableStateOf(PerformancePeriod.CURRENT_MONTH) }
     var excludeInstallment by remember { mutableStateOf(false) }
+    var lagDaysText by remember { mutableStateOf("0") }
+    var excludeKeywordsText by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("카드 이용조건 추가") },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = nickname,
                     onValueChange = { nickname = it },
@@ -79,6 +83,20 @@ fun AddCardConditionDialog(
                     Checkbox(checked = excludeInstallment, onCheckedChange = { excludeInstallment = it })
                     Text("할부 결제는 실적에서 제외")
                 }
+                OutlinedTextField(
+                    value = lagDaysText,
+                    onValueChange = { lagDaysText = it.filter(Char::isDigit) },
+                    label = { Text("월말 이월 일수 (매입 기준 카드용, 보통 0)") },
+                    supportingText = { Text("현대카드처럼 매입일 기준이면 2~3 권장. 월말 N일 사용분을 다음 달 실적으로 계산") },
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                )
+                OutlinedTextField(
+                    value = excludeKeywordsText,
+                    onValueChange = { excludeKeywordsText = it },
+                    label = { Text("실적 제외 키워드 (쉼표 구분)") },
+                    supportingText = { Text("예: 아파트관리비,도시가스,상품권") },
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                )
             }
         },
         confirmButton = {
@@ -93,6 +111,8 @@ fun AddCardConditionDialog(
                             thresholdAmount = threshold,
                             performancePeriod = period,
                             excludeInstallment = excludeInstallment,
+                            settlementLagDays = lagDaysText.toIntOrNull() ?: 0,
+                            excludeKeywords = excludeKeywordsText.trim(),
                         ),
                     )
                 }

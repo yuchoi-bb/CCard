@@ -22,5 +22,16 @@ data class CardCondition(
     val thresholdAmount: Long,
     val performancePeriod: PerformancePeriod,
     val excludeInstallment: Boolean = false,
+    /**
+     * 매입일 기준으로 실적을 산정하는 카드(예: 현대카드)를 위한 근사치.
+     * 월말 마지막 N일 동안의 승인 건은 전표 매입이 다음 달로 넘어간다고 보고 다음 달 실적으로 계산한다.
+     * 0이면 승인일 기준 그대로 계산한다.
+     */
+    val settlementLagDays: Int = 0,
+    /**
+     * 실적 제외 가맹점 키워드 (쉼표 구분, 예: "아파트관리비,도시가스,상품권").
+     * 가맹점명(없으면 문자 원문)에 키워드가 포함된 거래는 실적 집계에서 제외한다.
+     */
+    val excludeKeywords: String = "",
     val memo: String = "",
 )
