@@ -27,6 +27,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ccard.tracker.ui.AddCardConditionDialog
 import com.ccard.tracker.ui.MonthlyStatusScreen
 import com.ccard.tracker.ui.MonthlyStatusViewModel
+import com.ccard.tracker.ui.UpdateAvailableDialog
+import com.ccard.tracker.update.UpdateManager
 
 class MainActivity : ComponentActivity() {
 
@@ -34,8 +36,16 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { /* 사용자가 거부하면 SMS 자동 수집이 동작하지 않는다는 안내만 노출하면 충분 */ }
 
+    private lateinit var updateManager: UpdateManager
+
+    private val requestInstallPermission = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { /* 결과와 무관하게 사용자가 다시 업데이트 버튼을 누르면 downloadAndInstall이 재시도됨 */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        updateManager = UpdateManager(applicationContext)
 
         requestPermissions.launch(
             arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS),
@@ -46,6 +56,7 @@ class MainActivity : ComponentActivity() {
                 Surface {
                     val viewModel: MonthlyStatusViewModel = viewModel()
                     val statuses by viewModel.statuses.collectAsState()
+                    val updateInfo by viewModel.updateInfo.collectAsState()
                     var showAddDialog by remember { mutableStateOf(false) }
 
                     Scaffold(
@@ -75,6 +86,21 @@ class MainActivity : ComponentActivity() {
                                 viewModel.addCondition(condition)
                                 showAddDialog = false
                             },
+                        )
+                    }
+
+                    updateInfo?.let { info ->
+                        UpdateAvailableDialog(
+                            info = info,
+                            onConfirm = {
+                                if (updateManager.hasInstallPermission()) {
+                                    updateManager.downloadAndInstall(info)
+                                    viewModel.dismissUpdate()
+                                } else {
+                                    requestInstallPermission.launch(updateManager.installPermissionSettingsIntent())
+                                }
+                            },
+                            onDismiss = { viewModel.dismissUpdate() },
                         )
                     }
                 }

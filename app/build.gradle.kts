@@ -12,14 +12,31 @@ android {
         applicationId = "com.ccard.tracker"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        // CI passes -PccardVersionCode/-PccardVersionName so every release build has a unique,
+        // monotonically increasing version the in-app updater can compare against.
+        versionCode = (findProperty("ccardVersionCode") as String?)?.toIntOrNull() ?: 1
+        versionName = (findProperty("ccardVersionName") as String?) ?: "0.1.0-dev"
+    }
+
+    // Fixed keystore committed at the repo root so every CI build (and local debug installs of the
+    // release variant) share the same signing certificate. Android refuses to install an "update"
+    // whose signature doesn't match the currently installed app, so this is what makes the in-app
+    // self-update flow (see com.ccard.tracker.update) work without ever needing to uninstall first.
+    // This is a throwaway dev key for sideloading only — not meant for Play Store distribution.
+    signingConfigs {
+        create("release") {
+            storeFile = file("../ccard-release.keystore")
+            storePassword = "ccard-dev-2026"
+            keyAlias = "ccard"
+            keyPassword = "ccard-dev-2026"
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -34,6 +51,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {

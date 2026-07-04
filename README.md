@@ -13,6 +13,7 @@
 | 수집 | `sms/SmsImporter.kt` | 설치 이전 문자함(Inbox)을 스캔해 과거 내역 백필 |
 | 도메인 | `domain/MonthlyPerformanceCalculator.kt` | 조건의 실적 산정 기간(당월/전월)에 맞춰 누적 사용액·충족 여부 계산 |
 | UI | `MainActivity.kt`, `ui/*` | 권한 요청, 카드별 실적 현황 화면, 조건 추가 다이얼로그 |
+| 업데이트 | `update/UpdateChecker.kt`, `update/UpdateManager.kt` | GitHub Releases에서 최신 버전 확인 → 앱 내에서 다운로드·설치 |
 
 ## 실행 방법
 
@@ -22,12 +23,41 @@
 4. 우측 상단 새로고침 아이콘으로 기존 문자함을 스캔해 과거 승인 문자를 한 번에 가져올 수 있다.
 5. `+` 버튼으로 보유 카드의 이용조건(카드사, 월 실적 금액, 산정 기간, 할부 제외 여부)을 등록한다.
 
+## 빌드 & 배포 (GitHub Actions)
+
+`.github/workflows/release.yml`이 `claude/credit-card-tracker-sr7ybx`/`main` 브랜치에 푸시될 때마다
+(또는 Actions 탭에서 수동으로) 자동으로:
+
+1. `assembleRelease`로 APK를 빌드하고 (`versionCode`/`versionName`은 실행 번호 기반으로 자동 증가)
+2. 태그 `v<run_number>`로 GitHub Release를 생성해 APK를 첨부한다.
+
+빌드된 APK는 저장소의 **Releases** 페이지에서 바로 다운로드할 수 있는 링크가 생긴다.
+
+### 서명 키에 대해
+
+모든 릴리즈는 저장소 루트에 커밋된 `ccard-release.keystore`로 서명된다. 이렇게 고정해 둔 이유는 Android가
+서명이 다른 APK는 "업데이트"가 아니라 별도 앱으로 취급해 기존 앱 삭제 없이는 설치를 거부하기 때문이다 —
+이 키가 고정되어야 아래 앱 내 자동 업데이트가 매번 끊김 없이 동작한다. **사이드로드 테스트 전용 개인 키이며
+플레이스토어 배포용이 아니다.** 프로덕션으로 전환한다면 이 키를 저장소에서 빼고 GitHub Actions secret으로
+옮기는 것을 권장한다.
+
+## 앱 내 자동 업데이트
+
+앱 실행 시 `UpdateChecker`가 GitHub Releases의 `latest`를 조회해 현재 설치된 `versionCode`보다 새 버전이
+있으면 다이얼로그를 띄운다. "업데이트"를 누르면:
+
+1. (최초 1회) "출처를 알 수 없는 앱 설치" 권한 화면으로 이동해 허용
+2. `DownloadManager`로 APK를 앱 전용 저장소에 다운로드
+3. 다운로드 완료 시 시스템 설치 화면을 자동으로 띄움 (`FileProvider` 경유)
+
+즉, 첫 설치 이후로는 GitHub에서 새 릴리즈가 나올 때마다 앱을 다시 사이드로드할 필요 없이 앱 안에서 바로
+업데이트할 수 있다.
+
 ## ⚠️ 알려진 제약 / 검증되지 않은 부분
 
-- **이 개발 환경에는 Android SDK가 설치되어 있지 않아 `./gradlew assembleDebug` 등 실제 빌드/실행 검증을 하지 못했습니다.**
-  Android Studio(또는 Android SDK가 설치된 CI)에서 첫 빌드 시 사소한 컴파일 오류가 나올 수 있습니다.
-- `gradle/wrapper` 바이너리(`gradle-wrapper.jar`)는 포함하지 않았습니다. Android Studio로 열면 자동 생성되거나,
-  직접 `gradle wrapper --gradle-version 8.7`을 실행해 생성하세요.
+- **이 개발 환경에는 Android SDK가 설치되어 있지 않아 로컬에서 `./gradlew assembleRelease` 실제 빌드 검증을
+  하지 못했습니다.** GitHub Actions는 Android SDK를 갖추고 있어 정상적으로 빌드될 것으로 기대하지만, 실제 CI
+  결과(Actions 탭)로 확인이 필요합니다.
 - **SMS 파싱 정규식은 추정치입니다.** 카드사(신한/삼성/KB국민/현대/롯데/우리/NH농협/하나/BC)마다, 그리고 같은
   카드사라도 시기별로 문자 포맷이 다릅니다. 실제 수신 문자 몇 건을 `CardSmsParser`의 정규식과 대조해
   `companyKeywords`, `amountRegex`, `dateTimeRegex`, `extractMerchant` 로직을 보정해야 합니다.
