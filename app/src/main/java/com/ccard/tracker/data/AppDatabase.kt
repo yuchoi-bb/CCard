@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [Transaction::class, CardCondition::class],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -25,7 +25,10 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "ccard.db",
-                ).build().also { instance = it }
+                )
+                    // 이 앱은 아직 초기 개발 단계라 마이그레이션 대신 스키마 변경 시 로컬 데이터를 초기화한다.
+                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .build().also { instance = it }
             }
     }
 }
