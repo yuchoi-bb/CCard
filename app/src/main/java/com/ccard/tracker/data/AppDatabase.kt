@@ -27,7 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "ccard.db",
                 )
                     // 이 앱은 아직 초기 개발 단계라 마이그레이션 대신 스키마 변경 시 로컬 데이터를 초기화한다.
-                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .fallbackToDestructiveMigration()
                     .build().also { instance = it }
             }
     }
