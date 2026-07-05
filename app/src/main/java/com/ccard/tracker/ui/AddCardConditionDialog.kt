@@ -37,6 +37,7 @@ fun AddCardConditionDialog(
     var excludeInstallment by remember { mutableStateOf(false) }
     var lagDaysText by remember { mutableStateOf("0") }
     var excludeKeywordsText by remember { mutableStateOf("") }
+    var showThresholdError by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -46,7 +47,8 @@ fun AddCardConditionDialog(
                 OutlinedTextField(
                     value = nickname,
                     onValueChange = { nickname = it },
-                    label = { Text("카드 별칭 (예: 신한 딥드림)") },
+                    label = { Text("카드 별칭 (선택, 예: 신한 딥드림)") },
+                    supportingText = { Text("비워두면 카드사 이름으로 표시됩니다") },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text("카드사", modifier = Modifier.padding(top = 12.dp))
@@ -62,8 +64,13 @@ fun AddCardConditionDialog(
                 }
                 OutlinedTextField(
                     value = thresholdText,
-                    onValueChange = { thresholdText = it.filter(Char::isDigit) },
+                    onValueChange = {
+                        thresholdText = it.filter(Char::isDigit)
+                        showThresholdError = false
+                    },
                     label = { Text("월 실적 조건 금액 (원)") },
+                    isError = showThresholdError,
+                    supportingText = { if (showThresholdError) Text("1원 이상의 금액을 입력하세요") },
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 )
                 Row(modifier = Modifier.padding(top = 12.dp)) {
@@ -102,10 +109,12 @@ fun AddCardConditionDialog(
         confirmButton = {
             TextButton(onClick = {
                 val threshold = thresholdText.toLongOrNull() ?: 0
-                if (nickname.isNotBlank() && threshold > 0) {
+                if (threshold <= 0) {
+                    showThresholdError = true
+                } else {
                     onConfirm(
                         CardCondition(
-                            nickname = nickname,
+                            nickname = nickname.trim().ifBlank { selectedCompany.displayName },
                             cardCompany = selectedCompany,
                             cardLast4 = null,
                             thresholdAmount = threshold,

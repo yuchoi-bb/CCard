@@ -110,6 +110,7 @@ class MainActivity : ComponentActivity() {
                             when (selectedTab) {
                                 0 -> MonthlyStatusScreen(
                                     statuses = statuses,
+                                    onDelete = viewModel::deleteCondition,
                                     modifier = Modifier.weight(1f),
                                 )
                                 else -> TransactionListScreen(
