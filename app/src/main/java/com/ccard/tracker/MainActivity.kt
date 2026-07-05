@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ccard.tracker.data.CardCondition
 import com.ccard.tracker.ui.AddCardConditionDialog
 import com.ccard.tracker.ui.MonthlyStatusScreen
 import com.ccard.tracker.ui.MonthlyStatusViewModel
@@ -67,7 +68,8 @@ class MainActivity : ComponentActivity() {
                     val statuses by viewModel.statuses.collectAsState()
                     val transactions by viewModel.transactions.collectAsState()
                     val updateInfo by viewModel.updateInfo.collectAsState()
-                    var showAddDialog by remember { mutableStateOf(false) }
+                    var showConditionDialog by remember { mutableStateOf(false) }
+                    var editingCondition by remember { mutableStateOf<CardCondition?>(null) }
                     var selectedTab by remember { mutableStateOf(0) }
 
                     // 최초 설치 후 SMS 권한이 허용되는 즉시 문자함 전체를 한 번 스캔해 기존 카드 문자를 정리한다.
@@ -89,7 +91,10 @@ class MainActivity : ComponentActivity() {
                             )
                         },
                         floatingActionButton = {
-                            FloatingActionButton(onClick = { showAddDialog = true }) {
+                            FloatingActionButton(onClick = {
+                                editingCondition = null
+                                showConditionDialog = true
+                            }) {
                                 Icon(Icons.Filled.Add, contentDescription = "카드 조건 추가")
                             }
                         },
@@ -99,7 +104,7 @@ class MainActivity : ComponentActivity() {
                                 Tab(
                                     selected = selectedTab == 0,
                                     onClick = { selectedTab = 0 },
-                                    text = { Text("이번 달 실적") },
+                                    text = { Text("실적") },
                                 )
                                 Tab(
                                     selected = selectedTab == 1,
@@ -110,6 +115,10 @@ class MainActivity : ComponentActivity() {
                             when (selectedTab) {
                                 0 -> MonthlyStatusScreen(
                                     statuses = statuses,
+                                    onEdit = { condition ->
+                                        editingCondition = condition
+                                        showConditionDialog = true
+                                    },
                                     onDelete = viewModel::deleteCondition,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -121,12 +130,13 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    if (showAddDialog) {
+                    if (showConditionDialog) {
                         AddCardConditionDialog(
-                            onDismiss = { showAddDialog = false },
+                            initial = editingCondition,
+                            onDismiss = { showConditionDialog = false },
                             onConfirm = { condition ->
                                 viewModel.addCondition(condition)
-                                showAddDialog = false
+                                showConditionDialog = false
                             },
                         )
                     }

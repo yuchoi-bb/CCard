@@ -1,32 +1,38 @@
 package com.ccard.tracker.domain
 
 import com.ccard.tracker.data.CardCondition
-import com.ccard.tracker.data.PerformancePeriod
 import com.ccard.tracker.data.Transaction
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-data class CardStatus(
-    val condition: CardCondition,
-    val currentAmount: Long,
-    val remainingAmount: Long,
-    val isSatisfied: Boolean,
+/** 한 달치 실적: 기간, 누적액, 충족 여부와 함께 집계에 포함된 거래 목록(상세보기용)을 담는다. */
+data class MonthPerformance(
     val periodStart: LocalDate,
     val periodEnd: LocalDate,
+    val amount: Long,
+    val remainingAmount: Long,
+    val isSatisfied: Boolean,
+    val transactions: List<Transaction>,
+)
+
+data class CardStatus(
+    val condition: CardCondition,
+    val thisMonth: MonthPerformance,
+    val lastMonth: MonthPerformance,
 )
 
 object MonthlyPerformanceCalculator {
 
-    fun periodFor(condition: CardCondition, today: LocalDate = LocalDate.now()): Pair<LocalDate, LocalDate> =
-        when (condition.performancePeriod) {
-            PerformancePeriod.CURRENT_MONTH ->
-                today.withDayOfMonth(1) to today.withDayOfMonth(today.lengthOfMonth())
-            PerformancePeriod.PREV_MONTH -> {
-                val prevMonth = today.minusMonths(1)
-                prevMonth.withDayOfMonth(1) to prevMonth.withDayOfMonth(prevMonth.lengthOfMonth())
-            }
-        }
+    fun calculate(
+        condition: CardCondition,
+        transactions: List<Transaction>,
+        today: LocalDate = LocalDate.now(),
+    ): CardStatus = CardStatus(
+        condition = condition,
+        thisMonth = performanceForMonth(condition, transactions, today.withDayOfMonth(1)),
+        lastMonth = performanceForMonth(condition, transactions, today.minusMonths(1).withDayOfMonth(1)),
+    )
 
     /**
      * 매입일 기준 카드 근사: 월말 마지막 [lagDays]일 동안 승인된 건은
@@ -42,12 +48,13 @@ object MonthlyPerformanceCalculator {
         }
     }
 
-    fun calculate(
+    private fun performanceForMonth(
         condition: CardCondition,
         transactions: List<Transaction>,
-        today: LocalDate = LocalDate.now(),
-    ): CardStatus {
-        val (start, end) = periodFor(condition, today)
+        monthStart: LocalDate,
+    ): MonthPerformance {
+        val start = monthStart.withDayOfMonth(1)
+        val end = start.withDayOfMonth(start.lengthOfMonth())
         val zone = ZoneId.systemDefault()
         val excludeKeywords = condition.excludeKeywords
             .split(",")
@@ -61,18 +68,18 @@ object MonthlyPerformanceCalculator {
                 !effective.isBefore(start) && !effective.isAfter(end) &&
                 (!condition.excludeInstallment || !tx.isInstallment) &&
                 excludeKeywords.none { keyword -> (tx.merchantName ?: tx.rawSms).contains(keyword) }
-        }
+        }.sortedByDescending { it.transactedAtEpochMillis }
 
         val net = relevant.sumOf { if (it.isCancellation) -it.amount else it.amount }
             .coerceAtLeast(0)
 
-        return CardStatus(
-            condition = condition,
-            currentAmount = net,
-            remainingAmount = (condition.thresholdAmount - net).coerceAtLeast(0),
-            isSatisfied = net >= condition.thresholdAmount,
+        return MonthPerformance(
             periodStart = start,
             periodEnd = end,
+            amount = net,
+            remainingAmount = (condition.thresholdAmount - net).coerceAtLeast(0),
+            isSatisfied = net >= condition.thresholdAmount,
+            transactions = relevant,
         )
     }
 }

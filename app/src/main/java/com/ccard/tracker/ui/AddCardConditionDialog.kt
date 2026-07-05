@@ -23,25 +23,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ccard.tracker.data.CardCompany
 import com.ccard.tracker.data.CardCondition
-import com.ccard.tracker.data.PerformancePeriod
 
+/** [initial]이 null이면 추가 모드, 값이 있으면 해당 조건을 수정하는 모드로 동작한다. */
 @Composable
 fun AddCardConditionDialog(
+    initial: CardCondition?,
     onDismiss: () -> Unit,
     onConfirm: (CardCondition) -> Unit,
 ) {
-    var nickname by remember { mutableStateOf("") }
-    var selectedCompany by remember { mutableStateOf(CardCompany.SHINHAN) }
-    var thresholdText by remember { mutableStateOf("300000") }
-    var period by remember { mutableStateOf(PerformancePeriod.CURRENT_MONTH) }
-    var excludeInstallment by remember { mutableStateOf(false) }
-    var lagDaysText by remember { mutableStateOf("0") }
-    var excludeKeywordsText by remember { mutableStateOf("") }
+    var nickname by remember { mutableStateOf(initial?.nickname ?: "") }
+    var selectedCompany by remember { mutableStateOf(initial?.cardCompany ?: CardCompany.SHINHAN) }
+    var thresholdText by remember { mutableStateOf(initial?.thresholdAmount?.toString() ?: "300000") }
+    var excludeInstallment by remember { mutableStateOf(initial?.excludeInstallment ?: false) }
+    var lagDaysText by remember { mutableStateOf((initial?.settlementLagDays ?: 0).toString()) }
+    var excludeKeywordsText by remember { mutableStateOf(initial?.excludeKeywords ?: "") }
     var showThresholdError by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("카드 이용조건 추가") },
+        title = { Text(if (initial == null) "카드 이용조건 추가" else "카드 이용조건 수정") },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
@@ -74,19 +74,6 @@ fun AddCardConditionDialog(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 )
                 Row(modifier = Modifier.padding(top = 12.dp)) {
-                    FilterChip(
-                        selected = period == PerformancePeriod.CURRENT_MONTH,
-                        onClick = { period = PerformancePeriod.CURRENT_MONTH },
-                        label = { Text("이번 달 실적") },
-                        modifier = Modifier.padding(end = 4.dp),
-                    )
-                    FilterChip(
-                        selected = period == PerformancePeriod.PREV_MONTH,
-                        onClick = { period = PerformancePeriod.PREV_MONTH },
-                        label = { Text("전월 실적") },
-                    )
-                }
-                Row(modifier = Modifier.padding(top = 12.dp)) {
                     Checkbox(checked = excludeInstallment, onCheckedChange = { excludeInstallment = it })
                     Text("할부 결제는 실적에서 제외")
                 }
@@ -114,18 +101,18 @@ fun AddCardConditionDialog(
                 } else {
                     onConfirm(
                         CardCondition(
+                            id = initial?.id ?: 0,
                             nickname = nickname.trim().ifBlank { selectedCompany.displayName },
                             cardCompany = selectedCompany,
-                            cardLast4 = null,
+                            cardLast4 = initial?.cardLast4,
                             thresholdAmount = threshold,
-                            performancePeriod = period,
                             excludeInstallment = excludeInstallment,
                             settlementLagDays = lagDaysText.toIntOrNull() ?: 0,
                             excludeKeywords = excludeKeywordsText.trim(),
                         ),
                     )
                 }
-            }) { Text("추가") }
+            }) { Text(if (initial == null) "추가" else "저장") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("취소") }
