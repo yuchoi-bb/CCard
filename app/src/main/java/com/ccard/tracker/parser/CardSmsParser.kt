@@ -66,13 +66,24 @@ object CardSmsParser {
 
         val last4 = last4Regex.find(normalized)?.groupValues?.get(1)
 
+        val receivedAt = LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(receivedAtEpochMillis),
+            ZoneId.systemDefault(),
+        )
         val transactedAt = dateTimeRegex.find(normalized)?.let { match ->
             val (month, day, hour, minute) = match.destructured
-            val now = LocalDateTime.now(ZoneId.systemDefault())
             runCatching {
-                LocalDateTime.of(now.year, month.toInt(), day.toInt(), hour.toInt(), minute.toInt())
+                // 문자에는 연도가 없으므로 수신 시점의 연도를 쓰되, 그 결과가 수신 시점보다
+                // 미래라면(연말에 받은 작년 문자 등) 작년 거래로 본다.
+                var candidate = LocalDateTime.of(
+                    receivedAt.year, month.toInt(), day.toInt(), hour.toInt(), minute.toInt(),
+                )
+                if (candidate.isAfter(receivedAt.plusDays(1))) {
+                    candidate = candidate.minusYears(1)
+                }
+                candidate
             }.getOrNull()
-        } ?: LocalDateTime.ofInstant(Instant.ofEpochMilli(receivedAtEpochMillis), ZoneId.systemDefault())
+        } ?: receivedAt
 
         return ParsedCardSms(
             cardCompany = company,

@@ -42,6 +42,17 @@
             </intent-filter>
         </receiver>
 
+        <!-- RCS(챗봇) 메시지는 SMS 수신함에 없어서, 알림 접근 권한으로 알림 내용을 파싱해 수집한다 -->
+        <service
+            android:name=".sms.CardNotificationListenerService"
+            android:exported="false"
+            android:label="카드실적체크 알림 읽기"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

@@ -1,5 +1,6 @@
 package com.ccard.tracker.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,7 +13,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -65,7 +69,14 @@ private fun TransactionRow(
     amountFormatter: NumberFormat,
     dateFormatter: DateTimeFormatter,
 ) {
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    // 탭하면 문자 원문을 펼쳐서 파싱 결과(가맹점/금액/날짜)가 맞는지 확인할 수 있게 한다.
+    var showRaw by remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable { showRaw = !showRaw },
+    ) {
         Column(modifier = Modifier.padding(12.dp)) {
             val time = Instant.ofEpochMilli(tx.transactedAtEpochMillis).atZone(ZoneId.systemDefault())
             Text("${dateFormatter.format(time)}  ${tx.merchantName ?: "가맹점 미확인"}")
@@ -78,6 +89,14 @@ private fun TransactionRow(
                 text = "${amountFormatter.format(tx.amount)}원$suffix",
                 color = if (tx.isCancellation) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             )
+            if (showRaw) {
+                Text(
+                    text = tx.rawSms,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
         }
     }
 }

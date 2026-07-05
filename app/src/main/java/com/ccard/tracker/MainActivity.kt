@@ -1,15 +1,20 @@
 package com.ccard.tracker
 
 import android.Manifest
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,7 +32,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ccard.tracker.data.CardCondition
 import com.ccard.tracker.ui.AddCardConditionDialog
@@ -39,6 +48,7 @@ import com.ccard.tracker.update.UpdateManager
 class MainActivity : ComponentActivity() {
 
     private var smsPermissionGranted by mutableStateOf(false)
+    private var notificationAccessGranted by mutableStateOf(true)
 
     private val requestPermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -51,6 +61,12 @@ class MainActivity : ComponentActivity() {
     private val requestInstallPermission = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { /* 결과와 무관하게 사용자가 다시 업데이트 버튼을 누르면 downloadAndInstall이 재시도됨 */ }
+
+    override fun onResume() {
+        super.onResume()
+        notificationAccessGranted =
+            NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,6 +116,23 @@ class MainActivity : ComponentActivity() {
                         },
                     ) { padding ->
                         Column(modifier = Modifier.padding(padding)) {
+                            if (!notificationAccessGranted) {
+                                Card(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            "하나카드처럼 RCS(챗봇)로 오는 승인 메시지는 문자함에 없어 읽지 못합니다. 알림 접근 권한을 켜면 알림에서 수집할 수 있습니다.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        TextButton(onClick = {
+                                            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                                        }) { Text("설정") }
+                                    }
+                                }
+                            }
                             TabRow(selectedTabIndex = selectedTab) {
                                 Tab(
                                     selected = selectedTab == 0,
