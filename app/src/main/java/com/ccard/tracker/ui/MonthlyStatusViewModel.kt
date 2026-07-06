@@ -95,6 +95,9 @@ class MonthlyStatusViewModel(application: Application) : AndroidViewModel(applic
 
     private companion object {
         const val PREFS_NAME = "ccard_prefs"
-        const val KEY_FIRST_IMPORT_DONE = "first_import_done"
+
+        // 파서가 크게 바뀌어 전체 재스캔이 필요할 때 이 키의 버전 접미사를 올리면
+        // 업데이트 후 첫 실행 시 자동 스캔이 한 번 더 돈다.
+        const val KEY_FIRST_IMPORT_DONE = "first_import_done_v2"
     }
 }

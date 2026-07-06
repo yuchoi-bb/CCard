@@ -51,6 +51,10 @@ object CardSmsParser {
     // 하나카드처럼 "사용처 OOO" / 타사 "가맹점 OOO" 라벨이 있으면 그 값을 가맹점명으로 쓴다.
     private val merchantLabelRegex = Regex("""(?:사용처|가맹점명?)\s*[:：]?\s*(\S.*)""")
 
+    // 하나카드 한 줄 SMS: "하나0*4*승인 최*업 2,100원 일시불 07/08 06:50 화성시청 누적1,068,425원"
+    // → 거래시간과 "누적" 사이의 텍스트가 가맹점명이다.
+    private val inlineMerchantRegex = Regex("""\d{2}:\d{2}\s+(\S.*?)\s*누적""")
+
     fun parse(body: String, receivedAtEpochMillis: Long): ParsedCardSms? {
         val normalized = body.replace("[Web발신]", "").trim()
         if (!approvalKeywordRegex.containsMatchIn(normalized)) return null
@@ -100,7 +104,13 @@ object CardSmsParser {
         // 1순위: "사용처"/"가맹점" 라벨이 붙은 값
         merchantLabelRegex.find(body)?.let { return it.groupValues[1].trim() }
 
-        // 2순위: 금액·노이즈 키워드가 없는 마지막 줄 (라벨 없는 구형 포맷용 휴리스틱)
+        // 2순위: 한 줄 포맷에서 거래시간과 "누적" 사이의 값
+        inlineMerchantRegex.find(body)?.let { match ->
+            val merchant = match.groupValues[1].trim()
+            if (merchant.isNotEmpty()) return merchant
+        }
+
+        // 3순위: 금액·노이즈 키워드가 없는 마지막 줄 (라벨 없는 구형 포맷용 휴리스틱)
         val noiseKeywords = listOf("승인", "누적", "일시불", "할부", "카드", "잔액", "취소", "거래", "손님", "발신", "이용내역")
         return body.lines()
             .map { it.trim() }
