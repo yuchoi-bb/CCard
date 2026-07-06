@@ -98,7 +98,7 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         topBar = {
                             TopAppBar(
-                                title = { Text("카드 실적 체크") },
+                                title = { Text("카드 실적 체크  v${BuildConfig.VERSION_NAME}") },
                                 actions = {
                                     IconButton(onClick = { viewModel.importExistingSms() }) {
                                         Icon(Icons.Filled.Refresh, contentDescription = "기존 문자함 스캔")
