@@ -10,5 +10,6 @@ enum class CardCompany(val displayName: String) {
     NH("NH농협카드"),
     HANA("하나카드"),
     BC("BC카드"),
+    MG("새마을금고"),
     UNKNOWN("기타"),
 }

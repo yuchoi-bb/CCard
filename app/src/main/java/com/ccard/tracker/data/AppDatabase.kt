@@ -8,9 +8,9 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [Transaction::class, CardCondition::class],
-    // v5: 스키마 변경은 없지만, 연도 추정 버그로 미래 날짜가 저장된 기존 거래를
-    // 정리하기 위해 버전을 올려 로컬 데이터를 초기화한다 (재스캔은 자동으로 다시 돈다).
-    version = 5,
+    // 스키마 변경은 없지만, 파서가 크게 바뀔 때(MG+ 재분류, MMS 수집 등) 버전을 올려
+    // 로컬 데이터를 초기화한다 — 재스캔은 자동으로 다시 돈다.
+    version = 6,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

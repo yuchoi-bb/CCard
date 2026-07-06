@@ -26,7 +26,10 @@ object CardSmsParser {
 
     // "신한카드" 같은 회사명 표기 외에, "카드 하나0*4*"처럼 회사명 뒤에 바로
     // 마스킹된 카드번호가 붙는 라벨형 표기도 함께 매칭한다.
+    // 순서 중요: "MG+ 하나7*4*"(하나 망을 쓰는 새마을금고 제휴카드)는 '하나'보다 먼저 잡아
+    // 새마을금고로 분류해야 한다.
     private val companyKeywords: List<Pair<Regex, CardCompany>> = listOf(
+        Regex("""MG\+|MG체크|새마을금고""") to CardCompany.MG,
         Regex("""신한카드|신한(?=[0-9*(])""") to CardCompany.SHINHAN,
         Regex("""삼성카드|삼성(?=[0-9*(])""") to CardCompany.SAMSUNG,
         Regex("""KB국민카드|국민카드|KB국민(?=[0-9*(])|국민(?=[0-9*(])""") to CardCompany.KB,
